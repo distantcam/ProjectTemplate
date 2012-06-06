@@ -1,0 +1,60 @@
+<Project DefaultTargets="MakeTemplate" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <Namespace Condition="'$(Namespace)' == ''">Template</Namespace>
+
+    <TemplateExe>TextTransform.exe</TemplateExe>
+  </PropertyGroup>
+
+  <Target Name="RunTemplateFiles">
+    <ItemGroup>
+      <TemplateFiles Include="**\*.tt" />
+    </ItemGroup>
+
+    <Exec Command="$(TemplateExe) -a !!namespace!$(Namespace) %(TemplateFiles.Identity)" />
+  </Target>
+
+  <ItemGroup>
+    <TemplateFiles Include="**\*.tt" />
+    <OutputFiles Include="**\*.out" />
+  </ItemGroup>
+
+  <Target Name="MakeTemplate" DependsOnTargets="RunTemplateFiles">
+    <ItemGroup>
+      <TemplateFiles Include="**\*.tt" />
+      <OutputFiles Include="**\*.out" />
+    </ItemGroup>
+    
+    <Delete Files="@(TemplateFiles)" />
+    <Delete Files="@(OutputFiles)" />
+
+    <ItemGroup>
+      <ProjectFiles Include="Template\code\src\Template\**\*.*" />
+      <TestProjectFiles Include="Template\code\src\Template.Tests\**\*.*" />
+    </ItemGroup>
+
+    <Copy 
+      SourceFiles="@(ProjectFiles)" 
+      DestinationFiles="@(ProjectFiles->'Template\code\src\$(Namespace)\%(RecursiveDir)%(Filename)%(Extension)')" 
+    />
+
+    <Copy
+      SourceFiles="@(TestProjectFiles)"
+      DestinationFiles="@(TestProjectFiles->'Template\code\src\$(Namespace).Tests\%(RecursiveDir)%(Filename)%(Extension)')"
+    />
+
+    <RemoveDir Directories="Template\code\src\Template;Template\code\src\Template.Tests" />
+
+    <ItemGroup>
+      <NamespaceFiles Include="Template\**\*.*" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(NamespaceFiles)"
+      DestinationFiles="@(NamespaceFiles->'$(Namespace)\%(RecursiveDir)%(Filename)%(Extension)')"
+    />
+
+    <RemoveDir Directories="Template" />
+    
+  </Target>
+</Project>

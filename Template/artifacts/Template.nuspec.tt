@@ -1,0 +1,35 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".out" #>
+<#@ import namespace="System.IO" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id><#= ns #></id>
+    <version>$version$</version>
+    <title><#= ns #></title>
+    <authors>Cameron MacFarland</authors>
+    <owners>Cameron MacFarland</owners>
+    <projectUrl>https://github.com/distantcam/<#= ns #></projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>[TODO] Description</description>
+    <tags></tags>
+  </metadata>
+  <files>
+    <file src="..\code\src\\<#= ns #>\bin\$Configuration$\\<#= ns #>.dll" target="lib\net40" />
+    <file src="..\code\src\\<#= ns #>\bin\$Configuration$\\<#= ns #>.pdb" target="lib\net40" />
+  </files>
+</package>
+<# SaveOutput(ns + ".nuspec"); #>
+<#+
+void SaveOutput(string outputFileName)
+{
+    string templateDirectory = Path.GetDirectoryName(Host.TemplateFile);
+    string outputFilePath = Path.Combine(templateDirectory, outputFileName);
+    File.WriteAllText(outputFilePath, this.GenerationEnvironment.ToString()); 
+
+    this.GenerationEnvironment.Remove(0, this.GenerationEnvironment.Length);
+}
+#>
