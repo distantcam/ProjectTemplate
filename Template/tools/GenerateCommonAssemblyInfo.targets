@@ -5,9 +5,14 @@
 
     <CurrentVersion Condition=" '$(CurrentVersion)' == '' ">0.0.0</CurrentVersion>
     <Company Condition=" '$(Company)' == '' ">[AUTHOR NAME]</Company>
-
+    <BuildNumber></BuildNumber>
+    <AssemblyConfig></AssemblyConfig>
+    
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">$(MSBuildProjectDirectory)..\code\</SolutionDir>
     <MSBuildCommunityTasksPath>$(SolutionDir)..\tools\msbuildtasks\</MSBuildCommunityTasksPath>
+
+    <SafeBuildNumber>$(BuildNumber)</SafeBuildNumber>
+    <SafeBuildNumber Condition=" '$(SafeBuildNumber)' == '' ">0</SafeBuildNumber>
     
     <BuildDependsOn>
       GenerateCommonAssemblyInfo;
