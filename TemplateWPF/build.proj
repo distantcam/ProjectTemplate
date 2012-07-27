@@ -1,0 +1,60 @@
+<Project DefaultTargets="Test" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration>Debug</Configuration>
+    <SolutionDir>$(MSBuildProjectDirectory)\code\</SolutionDir>
+    <ProjectDir>$(MSBuildProjectDirectory)\code\.nuget\</ProjectDir>
+  </PropertyGroup>
+
+  <Import Project="tools\GenerateCommonAssemblyInfo.Targets"/>
+  <Import Project="code\.nuget\NuGet.targets"/>
+
+  <UsingTask AssemblyFile="code\packages\xunit.1.9.1\lib\net20\xunit.runner.msbuild.dll"
+             TaskName="Xunit.Runner.MSBuild.xunit"/>
+
+  <Target Name="FullClean" DependsOnTargets="Clean">
+    <ItemGroup>
+      <OldFiles Include="code\src\CommonAssemblyInfo.cs" />
+      <OldFiles Include="**\*.suo" />
+      <OldFiles Include="**\*.user" />
+      <OldFiles Include="**\*.cache" />
+      <OldFiles Include="**\*.dat" />
+
+      <ProjectFiles Include="code\**\*.*proj" />
+      <OldDirectories Include="@(ProjectFiles->'%(RootDir)%(Directory)bin')" />
+      <OldDirectories Include="@(ProjectFiles->'%(RootDir)%(Directory)obj')" />
+      <OldDirectories Include="code\packages\" />
+    </ItemGroup>
+
+    <Delete Files="@(OldFiles)" />
+    <RemoveDir Directories="@(OldDirectories)" />
+  </Target>
+
+  <Target Name="Clean">
+    <ItemGroup>
+      <OldArtifacts Include="artifacts\*.nupkg" />
+    </ItemGroup>
+
+    <Delete Files="@(OldArtifacts)" />
+  </Target>
+
+  <Target Name="RestoreSolutionPackages" DependsOnTargets="Clean">
+    <CallTarget Targets="RestorePackages" />
+  </Target>
+  
+  <Target Name="Compile" DependsOnTargets="RestoreSolutionPackages">
+    <ItemGroup>
+      <Projects Include="code\**\*.sln" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(Projects)" Targets="Rebuild" Properties="Configuration=$(Configuration)" />
+  </Target>
+  
+  <Target Name="Test" DependsOnTargets="Compile">
+    <ItemGroup>
+      <TestFiles Include="code\src\**\bin\$(Configuration)\*Tests.dll" />
+    </ItemGroup>
+
+    <xunit Assemblies="@(TestFiles)" />
+  </Target>
+  
+</Project>

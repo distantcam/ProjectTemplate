@@ -1,0 +1,16 @@
+﻿<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System.Windows;
+
+namespace <#= ns #>
+{
+    /// <summary>
+    /// Interaction logic for App.xaml
+    /// </summary>
+    public partial class App : Application
+    {
+    }
+}

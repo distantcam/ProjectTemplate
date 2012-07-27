@@ -1,0 +1,104 @@
+﻿<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+using System.Diagnostics;
+using System.Linq;
+using Autofac;
+using Caliburn.Micro;
+using Caliburn.Micro.Autofac;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
+using ReactiveUI;
+using <#= ns #>.Framework;
+using CMLogManager = Caliburn.Micro.LogManager;
+using NLogManager = NLog.LogManager;
+
+namespace <#= ns #>
+{
+    class AppBootstrapper : AutofacBootstrapper<ShellViewModel>
+    {
+        protected override void ConfigureBootstrapper()
+        {
+            //  you must call the base version first!
+            base.ConfigureBootstrapper();
+
+            ConfigureLogging();
+
+            //  override namespace naming convention
+            EnforceNamespaceConvention = false;
+            //  use auto subscription module
+            AutoSubscribeEventAggegatorHandlers = true;
+
+            RxApp.GetFieldNameForPropertyNameFunc = x =>
+            {
+                char[] arr = x.ToCharArray();
+                arr[0] = char.ToLower(arr[0]);
+                return new String(arr);
+            };
+        }
+
+        protected override void ConfigureContainer(ContainerBuilder builder)
+        {
+            ConfigureAttachments(builder);
+
+            //// Register all the services.
+            //builder.RegisterAssemblyTypes(AssemblySource.Instance.ToArray())
+            //    .Where(type => type.Namespace == "<#= ns #>.Framework.Services" && type.IsClass)
+            //    .AsImplementedInterfaces()
+            //    .InstancePerDependency();
+
+            ConfigureDatabase(builder);
+        }
+
+        protected override void PrepareApplication()
+        {
+            this.Application.Startup += this.OnStartup;
+            if (!Debugger.IsAttached)
+                this.Application.DispatcherUnhandledException += this.OnUnhandledException;
+            this.Application.Exit += this.OnExit;
+        }
+
+        private void ConfigureLogging()
+        {
+            CMLogManager.GetLog = type => new CaliburnMicroNLogShim(type);
+
+            var config = new LoggingConfiguration();
+            var consoleTarget = new ColoredConsoleTarget();
+            consoleTarget.Layout = "${level:uppercase=true} ${logger}: ${message}${onexception:inner=${newline}${exception:format=tostring}}";
+            config.AddTarget("console", consoleTarget);
+            config.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, consoleTarget));
+            NLogManager.Configuration = config;
+        }
+
+        private void ConfigureAttachments(ContainerBuilder builder)
+        {
+            //  register view model attachments
+            builder.RegisterAssemblyTypes(AssemblySource.Instance.ToArray())
+                //  must be a type with a name that ends with ViewModel
+              .Where(type => type.Name.EndsWith("Attachment"))
+                //  must implement IAttachment
+              .Where(type => type.GetInterface("IAttachment", false) != null)
+                //  registered as self
+              .AsSelf()
+                //  always create a new one
+              .InstancePerDependency();
+
+            builder.RegisterModule<AutoAttachmentModule>();
+        }
+
+        private void ConfigureDatabase(ContainerBuilder containerBuilder)
+        {
+            //var engine = new SterlingEngine();
+            //engine.Activate();
+            //var database = engine.SterlingDatabase.RegisterDatabase<<#= ns #>Database>();
+
+            //// Register sterling engine so it is disposed at app end.
+            //containerBuilder.RegisterInstance<SterlingEngine>(engine);
+            //containerBuilder.RegisterInstance<ISterlingDatabaseInstance>(database);
+        }
+    }
+}

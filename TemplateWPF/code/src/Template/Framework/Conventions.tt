@@ -1,0 +1,46 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+
+namespace <#= ns #>.Framework
+{
+    static class Conventions
+    {
+        public static Type FindViewModel(string name)
+        {
+            return Type.GetType(String.Format("<#= ns #>.Screens.{0}.{0}ViewModel", name), false, true);
+        }
+
+        public static Type FindModel(string name)
+        {
+            return Type.GetType(String.Format("<#= ns #>.Models.{0}Model", name), false, true);
+        }
+
+        public static Type FindViewModel(Type type)
+        {
+            return FindViewModel(GetRootName(type));
+        }
+
+        public static Type FindModel(Type type)
+        {
+            return FindModel(GetRootName(type));
+        }
+
+        public static string GetRootName(Type type)
+        {
+            if (type.Name.EndsWith("Model") && type.Namespace == "<#= ns #>.Models")
+                return type.Name.Substring(0, type.Name.Length - 5);
+
+            if (type.Name.EndsWith("ViewModel"))// && type.Namespace.StartsWith("<#= ns #>.Screens"))
+                return type.Name.Substring(0, type.Name.Length - 9);
+
+            if (type.Name.EndsWith("Attachment") && typeof(IAttachment).IsAssignableFrom(type))
+                return type.Name.Substring(0, type.Name.Length - 10);
+
+            throw new NotSupportedException(String.Format("Type {0} is not supported.", type.Name));
+        }
+    }
+}

@@ -1,0 +1,27 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+using System.Globalization;
+using System.Windows;
+
+namespace <#= ns #>.Converters
+{
+    class NullToVisibilityConverter : MarkupConverter
+    {
+        public bool Invert { get; set; }
+
+        protected override object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            bool flag = value != null;
+            return (flag ^ Invert) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        protected override object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value;
+        }
+    }
+}

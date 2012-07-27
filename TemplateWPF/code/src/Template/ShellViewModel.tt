@@ -1,0 +1,13 @@
+﻿<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using <#= ns #>.Framework.ReactiveCM;
+
+namespace <#= ns #>
+{
+    class ShellViewModel : ReactiveScreen
+    {
+    }
+}
