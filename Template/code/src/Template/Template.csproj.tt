@@ -4,7 +4,7 @@
 <# 
   var ns = this.Host.ResolveParameterValue("", "", "namespace");
   
-  var absolutePath = Host.ResolvePath("Template\\code\\src\\Template.Tests\\Template.Tests.csproj.out");
+  var absolutePath = Host.ResolvePath(ns + "\\code\\src\\Template.Tests\\Template.Tests.csproj.out");
   var ids = File.ReadAllLines(absolutePath);
   var projectID = ids[0];
 #>

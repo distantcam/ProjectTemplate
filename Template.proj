@@ -6,55 +6,55 @@
     <TemplateExe>TextTransform.exe</TemplateExe>
   </PropertyGroup>
 
-  <Target Name="RunTemplateFiles">
+  <Target Name="CopyToDestination">
     <ItemGroup>
-      <TemplateFiles Include="**\*.tt" />
+      <SourceFile Include="Template\**\*.*" />
+    </ItemGroup>
+
+    <Copy 
+      SourceFiles="@(SourceFile)" 
+      DestinationFiles="@(SourceFile->'$(Namespace)\%(RecursiveDir)%(Filename)%(Extension)')"
+    />
+  </Target>
+
+  <Target Name="RunTemplateFiles" DependsOnTargets="CopyToDestination">
+    <ItemGroup>
+      <TemplateFiles Include="$(Namespace)\**\*.tt" />
     </ItemGroup>
 
     <Exec Command="$(TemplateExe) -a !!namespace!$(Namespace) %(TemplateFiles.Identity)" />
   </Target>
 
   <ItemGroup>
-    <TemplateFiles Include="**\*.tt" />
-    <OutputFiles Include="**\*.out" />
+    <TemplateFiles Include="$(Namespace)\**\*.tt" />
+    <OutputFiles Include="$(Namespace)\**\*.out" />
   </ItemGroup>
 
   <Target Name="MakeTemplate" DependsOnTargets="RunTemplateFiles">
     <ItemGroup>
-      <TemplateFiles Include="**\*.tt" />
-      <OutputFiles Include="**\*.out" />
+      <TemplateFiles Include="$(Namespace)\**\*.tt" />
+      <OutputFiles Include="$(Namespace)\**\*.out" />
     </ItemGroup>
     
     <Delete Files="@(TemplateFiles)" />
     <Delete Files="@(OutputFiles)" />
 
     <ItemGroup>
-      <ProjectFiles Include="Template\code\src\Template\**\*.*" />
-      <TestProjectFiles Include="Template\code\src\Template.Tests\**\*.*" />
+      <ProjectFiles Include="$(Namespace)\code\src\Template\**\*.*" />
+      <TestProjectFiles Include="$(Namespace)\code\src\Template.Tests\**\*.*" />
     </ItemGroup>
 
     <Copy 
       SourceFiles="@(ProjectFiles)" 
-      DestinationFiles="@(ProjectFiles->'Template\code\src\$(Namespace)\%(RecursiveDir)%(Filename)%(Extension)')" 
+      DestinationFiles="@(ProjectFiles->'$(Namespace)\code\src\$(Namespace)\%(RecursiveDir)%(Filename)%(Extension)')" 
     />
 
     <Copy
       SourceFiles="@(TestProjectFiles)"
-      DestinationFiles="@(TestProjectFiles->'Template\code\src\$(Namespace).Tests\%(RecursiveDir)%(Filename)%(Extension)')"
+      DestinationFiles="@(TestProjectFiles->'$(Namespace)\code\src\$(Namespace).Tests\%(RecursiveDir)%(Filename)%(Extension)')"
     />
 
-    <RemoveDir Directories="Template\code\src\Template;Template\code\src\Template.Tests" />
-
-    <ItemGroup>
-      <NamespaceFiles Include="Template\**\*.*" />
-    </ItemGroup>
-
-    <Copy
-      SourceFiles="@(NamespaceFiles)"
-      DestinationFiles="@(NamespaceFiles->'$(Namespace)\%(RecursiveDir)%(Filename)%(Extension)')"
-    />
-
-    <RemoveDir Directories="Template" />
+    <RemoveDir Directories="$(Namespace)\code\src\Template;$(Namespace)\code\src\Template.Tests" />
     
   </Target>
 </Project>

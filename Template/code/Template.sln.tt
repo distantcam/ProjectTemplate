@@ -6,7 +6,7 @@
 
   var nugetGuid = Guid.NewGuid();
 
-  var absolutePath = Host.ResolvePath("Template\\code\\src\\Template.Tests\\Template.Tests.csproj.out");
+  var absolutePath = Host.ResolvePath(ns + "\\code\\src\\Template.Tests\\Template.Tests.csproj.out");
   var ids = File.ReadAllLines(absolutePath);
   var projectGuid = ids[0];
   var testProjectGuid = ids[1];
