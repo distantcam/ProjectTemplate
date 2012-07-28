@@ -3,6 +3,7 @@
     <Configuration>Debug</Configuration>
     <SolutionDir>$(MSBuildProjectDirectory)\code\</SolutionDir>
     <ProjectDir>$(MSBuildProjectDirectory)\code\.nuget\</ProjectDir>
+    <DownloadNuGetExe>true</DownloadNuGetExe>
   </PropertyGroup>
 
   <Import Project="tools\GenerateCommonAssemblyInfo.Targets"/>
@@ -13,6 +14,7 @@
 
   <Target Name="FullClean" DependsOnTargets="Clean">
     <ItemGroup>
+      <OldFiles Include="code\.nuget\nuget.exe" />
       <OldFiles Include="code\src\CommonAssemblyInfo.cs" />
       <OldFiles Include="**\*.suo" />
       <OldFiles Include="**\*.user" />

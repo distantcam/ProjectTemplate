@@ -10,9 +10,9 @@
     <id><#= ns #></id>
     <version>$version$</version>
     <title><#= ns #></title>
-    <authors>Cameron MacFarland</authors>
-    <owners>Cameron MacFarland</owners>
-    <projectUrl>https://github.com/distantcam/<#= ns #></projectUrl>
+    <authors>[AUTHOR]</authors>
+    <owners>[AUTHOR]</owners>
+    <projectUrl>[URL]</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>[TODO] Description</description>
     <tags></tags>
