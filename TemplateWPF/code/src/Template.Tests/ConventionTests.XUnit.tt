@@ -1,0 +1,355 @@
+﻿<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using ApprovalTests;
+using ApprovalTests.Core;
+using ApprovalTests.Namers;
+using Xunit;
+using Xunit.Extensions;
+using Xunit.Sdk;
+using Approvals = ApprovalTests.Approvals;
+
+namespace ConventionTests
+{
+    public class TestCaseData
+    {
+        private string testName;
+        private object[] arguments;
+
+        public TestCaseData(string testName, object arguments)
+        {
+            this.testName = testName;
+            this.arguments = new object[] { arguments };
+        }
+
+        public string TestName { get { return testName; } }
+        public object[] Arguments { get { return arguments; } }
+    }
+
+    public class ConventionTestCommand : TheoryCommand
+    {
+        public ConventionTestCommand(TestCaseData testData, IMethodInfo method, object[] parameters, Type[] genericTypes)
+            : base(method, parameters, genericTypes)
+        {
+            if (testData == null)
+                return;
+
+            this.DisplayName = testData.TestName;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class ConventionTestAttribute : FactAttribute
+    {
+        protected override IEnumerable<ITestCommand> EnumerateTestCommands(IMethodInfo method)
+        {
+            List<ITestCommand> results = new List<ITestCommand>();
+
+            try
+            {
+                foreach (object[] tempDataItems in GetData(method.MethodInfo))
+                {
+                    IMethodInfo testMethod = method;
+                    Type[] resolvedTypes = null;
+
+                    var dataItems = tempDataItems;
+                    TestCaseData testData = null;
+
+                    if (tempDataItems.Length == 1)
+                    {
+                        testData = tempDataItems[0] as TestCaseData;
+                    }
+
+                    if (testData != null)
+                        dataItems = testData.Arguments;
+
+                    if (method.MethodInfo != null && method.MethodInfo.IsGenericMethodDefinition)
+                    {
+                        resolvedTypes = ResolveGenericTypes(method, dataItems);
+                        testMethod = Reflector.Wrap(method.MethodInfo.MakeGenericMethod(resolvedTypes));
+                    }
+
+                    results.Add(new ConventionTestCommand(testData, testMethod, dataItems, resolvedTypes));
+                }
+
+                if (results.Count == 0)
+                    results.Add(new LambdaTestCommand(method, () =>
+                    {
+                        throw new InvalidOperationException(String.Format("No data found for {0}.{1}", method.TypeName, method.Name));
+                    }));
+            }
+            catch (Exception ex)
+            {
+                results.Clear();
+                results.Add(new LambdaTestCommand(method, () =>
+                {
+                    throw new InvalidOperationException(
+                        String.Format("An exception was thrown while getting data for theory {0}.{1}:\r\n{2}",
+                                      method.TypeName, method.Name, ex)
+                    );
+                }));
+            }
+
+            return results;
+        }
+
+        static IEnumerable<object[]> GetData(MethodInfo method)
+        {
+            foreach (DataAttribute attr in method.GetCustomAttributes(typeof(DataAttribute), false))
+            {
+                ParameterInfo[] parameterInfos = method.GetParameters();
+                Type[] parameterTypes = new Type[parameterInfos.Length];
+
+                for (int idx = 0; idx < parameterInfos.Length; idx++)
+                    parameterTypes[idx] = parameterInfos[idx].ParameterType;
+
+                IEnumerable<object[]> attrData = attr.GetData(method, parameterTypes);
+
+                if (attrData != null)
+                    foreach (object[] dataItems in attrData)
+                        yield return dataItems;
+            }
+        }
+
+        static Type ResolveGenericType(Type genericType, object[] parameters, ParameterInfo[] parameterInfos)
+        {
+            bool sawNullValue = false;
+            Type matchedType = null;
+
+            for (int idx = 0; idx < parameterInfos.Length; ++idx)
+                if (parameterInfos[idx].ParameterType == genericType)
+                {
+                    object parameterValue = parameters[idx];
+
+                    if (parameterValue == null)
+                        sawNullValue = true;
+                    else if (matchedType == null)
+                        matchedType = parameterValue.GetType();
+                    else if (matchedType != parameterValue.GetType())
+                        return typeof(object);
+                }
+
+            if (matchedType == null)
+                return typeof(object);
+
+            return sawNullValue && matchedType.IsValueType ? typeof(object) : matchedType;
+        }
+
+        static Type[] ResolveGenericTypes(IMethodInfo method, object[] parameters)
+        {
+            Type[] genericTypes = method.MethodInfo.GetGenericArguments();
+            Type[] resolvedTypes = new Type[genericTypes.Length];
+            ParameterInfo[] parameterInfos = method.MethodInfo.GetParameters();
+
+            for (int idx = 0; idx < genericTypes.Length; ++idx)
+                resolvedTypes[idx] = ResolveGenericType(genericTypes[idx], parameters, parameterInfos);
+
+            return resolvedTypes;
+        }
+
+        class LambdaTestCommand : TestCommand
+        {
+            readonly Assert.ThrowsDelegate lambda;
+
+            public LambdaTestCommand(IMethodInfo method, Assert.ThrowsDelegate lambda)
+                : base(method, null, 0)
+            {
+                this.lambda = lambda;
+            }
+
+            public override bool ShouldCreateInstance
+            {
+                get { return false; }
+            }
+
+            public override MethodResult Execute(object testClass)
+            {
+                try
+                {
+                    lambda();
+                    return new PassedResult(testMethod, DisplayName);
+                }
+                catch (Exception ex)
+                {
+                    return new FailedResult(testMethod, ex, DisplayName);
+                }
+            }
+        }
+    }
+
+    public interface IConventionTest
+    {
+        string Name { get; }
+        void Execute();
+    }
+
+    /// <summary>
+    ///   This is where we set what our convention is all about
+    /// </summary>
+    public class ConventionData
+    {
+        /// <summary>
+        ///   list of assemblies to scan for types that our convention is related to. Can be null, in which case all assemblies starting with 'Als.' will be scanned
+        /// </summary>
+        public Assembly[] Assemblies { get; set; }
+
+        /// <summary>
+        ///   Descriptive text used for failure message in test. Should explan what is wrong, and how to fix it (how to make types that do not conform to the convention do so).
+        /// </summary>
+        public string FailDescription { get; set; }
+
+        /// <summary>
+        ///   Specifies that there are valid exceptions to the rule specified by the convention.
+        /// </summary>
+        /// <remarks>
+        ///   When set to <c>true</c> will run the test as Approval test so that the exceptional cases can be reviewed and approved.
+        /// </remarks>
+        public bool HasApprovedExceptions { get; set; }
+
+        /// <summary>
+        ///   This is the convention. The predicate should return <c>true</c> for types that do conform to the convention, and <c>false</c> otherwise
+        /// </summary>
+        public Func<Type, bool> Must { get; set; }
+
+        /// <summary>
+        ///   Predicate that finds types that we want to apply out convention to.
+        /// </summary>
+        public Func<Type, bool> Types { get; set; }
+
+        public Func<Type, string> FailItemDescription { get; set; }
+
+        /// <summary>
+        ///   helper method to set <see cref="Assemblies" /> in a more convenient manner.
+        /// </summary>
+        /// <param name="assembly"> </param>
+        /// <returns> </returns>
+        public ConventionData FromAssembly(params Assembly[] assembly)
+        {
+            Assemblies = assembly;
+            return this;
+        }
+
+        /// <summary>
+        ///   helper method to set <see cref="HasApprovedExceptions" /> in a more convenient manner.
+        /// </summary>
+        /// <returns> </returns>
+        public ConventionData WithApprovedExceptions(string explanation = null)
+        {
+            HasApprovedExceptions = true;
+            return this;
+        }
+    }
+
+    public abstract class ConventionTestBase : IConventionTest
+    {
+        public virtual string Name
+        {
+            get { return GetType().Name.Replace('_', ' '); }
+        }
+
+        public abstract void Execute();
+
+        protected void Approve(string message)
+        {
+            Approvals.Verify(
+                new ApprovalTextWriter(message),
+                new ConventionTestNamer(GetType().Name),
+                Approvals.GetReporter());
+        }
+    }
+
+    /// <summary>
+    ///   Base class for convention tests. Inherited types should be put in "/Conventions" folder in test assembly and follow Sentence_naming_convention_with_underscores_indead_of_spaces These tests will be ran by <see
+    ///    cref="ConventionTestsRunner" /> .
+    /// </summary>
+    public abstract class ConventionTest : ConventionTestBase
+    {
+        public override void Execute()
+        {
+            var data = SetUp();
+            var typesToTest = GetTypesToTest(data);
+            if (typesToTest.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "No types found to apply the convention to. Make sure the Types predicate is correct and that the right assemblies to scan are specified.");
+            }
+            var itemDescription = (data.FailItemDescription ?? (t => t.ToString()));
+            var invalidTypes = Array.FindAll(typesToTest, t => data.Must(t) == false);
+            var message = (data.FailDescription ?? "Invalid types found") + Environment.NewLine + "\t" +
+                          string.Join(Environment.NewLine + "\t", invalidTypes.Select(itemDescription));
+            if (data.HasApprovedExceptions)
+            {
+                Approve(message);
+            }
+            else
+            {
+                Assert.True(invalidTypes.Count() == 0, message);
+            }
+        }
+
+        protected virtual Assembly[] GetAssembliesToScan(ConventionData data)
+        {
+            if (data.Assemblies != null)
+            {
+                return data.Assemblies;
+            }
+            var assembly = Assembly.GetCallingAssembly();
+            var companyName = assembly.FullName.Substring(0, assembly.FullName.IndexOf('.'));
+            var assemblyNames = assembly.GetReferencedAssemblies();
+            var applicationAssemblies = Array.FindAll(assemblyNames, n => n.FullName.StartsWith(companyName));
+            return Array.ConvertAll(applicationAssemblies, Assembly.Load);
+        }
+
+        /// <summary>
+        ///   This is the only method you need to override. Return a <see cref="ConventionData" /> that describes your convention.
+        /// </summary>
+        /// <returns> </returns>
+        protected abstract ConventionData SetUp();
+
+        protected virtual Type[] GetTypesToTest(ConventionData data)
+        {
+            <#= ns #>.ModuleInitializer.Initialize();
+
+            return GetAssembliesToScan(data)
+                .SelectMany(a => { a.GetModules(); return a.GetTypes(); })
+                .Where(data.Types)
+                .OrderBy(t => t.FullName)
+                .ToArray();
+        }
+    }
+
+    public class ConventionTestNamer : UnitTestFrameworkNamer, IApprovalNamer
+    {
+        private readonly string name;
+
+        public ConventionTestNamer(string name)
+        {
+            this.name = name;
+        }
+
+        string IApprovalNamer.Name
+        {
+            get { return name; }
+        }
+    }
+
+    public static class TypeExtensions
+    {
+        public static bool IsConcrete(this Type @this, Type potentialBase)
+        {
+            return @this.IsAbstract == false && potentialBase.IsAssignableFrom(@this);
+        }
+
+        public static bool IsConcrete<TBase>(this Type @this)
+        {
+            return IsConcrete(@this, typeof(TBase));
+        }
+    }
+}

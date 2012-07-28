@@ -43,6 +43,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ApprovalTests">
+      <HintPath>..\..\packages\ApprovalTests.1.9\lib\ApprovalTests.dll</HintPath>
+    </Reference>
+    <Reference Include="ApprovalUtilities">
+      <HintPath>..\..\packages\ApprovalTests.1.9\lib\ApprovalUtilities.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,11 +59,20 @@
     <Reference Include="xunit">
       <HintPath>..\..\packages\xunit.1.9.1\lib\net20\xunit.dll</HintPath>
     </Reference>
+    <Reference Include="xunit.extensions">
+      <HintPath>..\..\packages\xunit.extensions.1.9.1\lib\net20\xunit.extensions.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Conventions\Attachments_have_Attachment_suffix_in_type_name.cs" />
+    <Compile Include="Conventions\Attachment_Implements_Correct_Interface.cs" />
+    <Compile Include="Conventions\ViewModels_have_ViewModel_suffix_in_type_name.cs" />
+    <Compile Include="Conventions\ViewModel_Exists_For_Attachment.cs" />
+    <Compile Include="Conventions\__Run.cs" />
+    <Compile Include="ConventionTests.XUnit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

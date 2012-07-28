@@ -1,0 +1,27 @@
+﻿<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+using ConventionTests;
+using <#= ns #>.Framework;
+
+namespace <#= ns #>.Tests.Conventions
+{
+    public class Attachments_have_Attachment_suffix_in_type_name : ConventionTest
+    {
+        private const string Suffix = "Attachment";
+
+        protected override ConventionData SetUp()
+        {
+            return new ConventionData
+            {
+                Types = t => t.IsConcrete<IAttachment>(),
+                Must = t => t.Name.EndsWith(Suffix),
+                FailDescription = "Attachments will not work unless the type is named {something}" + Suffix,
+                FailItemDescription = t => String.Format("{0}. Name should be {1}{2} perhaps?", t, t.Name, Suffix)
+            };
+        }
+    }
+}

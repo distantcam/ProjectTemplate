@@ -1,0 +1,36 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+using ConventionTests;
+using <#= ns #>.Framework;
+using ConventionManager = <#= ns #>.Framework.Conventions;
+
+namespace <#= ns #>.Tests.Conventions
+{
+    public class ViewModel_Exists_For_Attachment : ConventionTest
+    {
+        protected override ConventionData SetUp()
+        {
+            return new ConventionData
+            {
+                Types = t => t.IsConcrete<IAttachment>(),
+                Must = HaveAViewModel,
+            };
+        }
+
+        private bool HaveAViewModel(Type t)
+        {
+            try
+            {
+                return ConventionManager.FindViewModel(t) != null;
+            }
+            catch (NotSupportedException)
+            {
+                return false;
+            }
+        }
+    }
+}

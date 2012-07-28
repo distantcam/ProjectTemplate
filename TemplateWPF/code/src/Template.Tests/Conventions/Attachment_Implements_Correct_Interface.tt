@@ -1,0 +1,37 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<# 
+  string ns = this.Host.ResolveParameterValue("", "", "namespace");
+#>
+using System;
+using ConventionTests;
+using <#= ns #>.Framework;
+using ConventionManager = <#= ns #>.Framework.Conventions;
+
+namespace <#= ns #>.Tests.Conventions
+{
+    public class Attachment_Implements_Correct_Interface : ConventionTest
+    {
+        protected override ConventionData SetUp()
+        {
+            return new ConventionData
+            {
+                Types = t => t.Name.EndsWith("Attachment") && HaveAViewModel(t),
+                Must = t => t.IsConcrete<IAttachment>(),
+                FailDescription = "Attachments must implement IAttachment",
+            };
+        }
+
+        private bool HaveAViewModel(Type t)
+        {
+            try
+            {
+                return ConventionManager.FindViewModel(t) != null;
+            }
+            catch (NotSupportedException)
+            {
+                return false;
+            }
+        }
+    }
+}
